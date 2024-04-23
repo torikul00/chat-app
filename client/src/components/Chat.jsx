@@ -5,20 +5,45 @@ import useAuth from './useAuth';
 import Image from '/Torikul Islam.png'
 import { v4 as uid } from 'uuid'
 import { PulseLoader } from 'react-spinners'
+import { IoClose } from "react-icons/io5";
+import { useQuery } from "@tanstack/react-query"
+import { RiSendPlaneFill } from "react-icons/ri";
+import { IoMdSearch } from "react-icons/io";
+
 
 const Chat = () => {
-    const [allUsers, setAllUsers] = useState([])
     const { user, socket } = useAuth()
     const [receiver, setReceiver] = useState(null)
     const [conversations, setConversations] = useState([])
     const [onlineUsers, setOnlineUsers] = useState([])
     const chatContainerRef = useRef(null)
     const [chatLoading, setChatLoading] = useState(false)
-    const [userLoding, setUserLoading] = useState(false)
     const [isTyping, setIsTyping] = useState(false)
     const [scrollBottom, setScrollBottom] = useState(false)
     const [skipData, setSkipData] = useState(0)
-    const [lastMessageId, setLastMessageId] = useState(null)
+    const [allUsers, setAllUsers] = useState([])
+    const [searchText, setSearchText] = useState('')
+
+    const { data: convoUsers, isLoading: userLoding } = useQuery({
+        queryKey: ['all_users', user],
+        queryFn: async () => {
+            const res = await axios.get('/all_users_api/all_users')
+            try {
+                if (res.status === 200) {
+                    const users = res.data.all_users.filter(u => u._id !== user?._id)
+                    setAllUsers(users)
+                    return users
+                }
+                if (res.status === 204) {
+                    return []
+                }
+            } catch (error) {
+                console.log(error);
+                return []
+            }
+
+        }
+    })
 
     useEffect(() => {
         if (socket?.connected) {
@@ -41,16 +66,7 @@ const Chat = () => {
             socket.on('typing', isTyping => {
                 setIsTyping(isTyping);
             });
-            setUserLoading(true)
-            axios.get('/all_users_api/all_users')
-                .then(res => {
-                    const users = res.data.all_users.filter(u => u._id !== user?._id)
-                    setAllUsers(users)
-                })
-                .catch(err => {
-                    console.log(err);
-                })
-                .finally(() => { setUserLoading(false) })
+
 
             return () => {
                 socket.off("new_message")
@@ -91,7 +107,6 @@ const Chat = () => {
                 if (res.status == 200) {
                     setSkipData(skipData + 20)
                     setScrollBottom(!scrollBottom)
-                    setLastMessageId(res.data[0].id)
                     setConversations(res.data)
                 }
             })
@@ -107,7 +122,6 @@ const Chat = () => {
         setReceiver(null)
         setConversations([])
         setSkipData(0)
-        setLastMessageId(null)
     }
     let typingTimeout = null;
     const handleTyping = () => {
@@ -126,29 +140,40 @@ const Chat = () => {
         }
     };
 
-    const handleLoadDataOnScroll = (e) => {
-        const { scrollTop } = e.target
+    // const handleLoadDataOnScroll = (e) => {
+    //     const { scrollTop } = e.target
 
-                console.log(lastMessageId);
-        console.log( document.getElementById(lastMessageId));       
-        if (scrollTop === 0) {
-            axios.get(`/chat_api/get_chat?sender_id=${user._id}&receiver_id=${receiver._id}&skip=${skipData}`)
-                .then(res => {
-                    if (res.status == 200) {
-                        if (res.data?.length) {
-                            const lastMessageDiv = document.getElementById(lastMessageId)
-                            lastMessageDiv.scrollIntoView(true)
-                            setSkipData(skipData + 20)
-                            setConversations([...res.data, ...conversations])
-                        }
-                    }
-                })
-                .catch(err => {
-                    console.log(err);
-                })
-        }
+    //     if (scrollTop === 0) {
+    //         axios.get(`/chat_api/get_chat?sender_id=${user._id}&receiver_id=${receiver._id}&skip=${skipData}`)
+    //             .then(res => {
+    //                 if (res.status == 200) {
+    //                     if (res.data?.length) {
+    //                         setSkipData(skipData + 20)
+    //                         setConversations([...res.data, ...conversations])
+    //                     }
+    //                 }
+    //             })
+    //             .catch(err => {
+    //                 console.log(err);
+    //             })
+    //     }
+    // }
+    const handleSearchConvo = (e) => {
+        e.preventDefault()
+        const searchText = e.target[0].value
+        if (!searchText) return
+        const users = []
+        allUsers?.map(user => {
+            if (user.name.toLowerCase().includes(searchText.toLowerCase())) {
+                users.push(user)
+            }
+        })
+        setAllUsers(users)
     }
-
+    const resetConvoSearch = () => {
+        setAllUsers(convoUsers)
+        setSearchText('')
+    }
     return (
         <div>
             <Navbar />
@@ -179,7 +204,7 @@ const Chat = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={handleCloseChat} className='px-4'>X</button>
+                                <button onClick={handleCloseChat} className='px-4'><IoClose className='text-gray-500' size={25} /></button>
                             </div>
                             {
                                 chatLoading &&
@@ -197,26 +222,27 @@ const Chat = () => {
                                         </div>
                                     }
                                     {
-
-                                        conversations?.length ? <div onScroll={handleLoadDataOnScroll} ref={chatContainerRef} id='chatContainer' className="flex flex-col flex-grow h-0 p-4 overflow-auto">
+                                        conversations?.length ? <div ref={chatContainerRef} id='chatContainer' className="hideScrollbar flex flex-col flex-grow h-0 p-4 overflow-auto">
                                             {/* TODO: */}
-
                                             {
                                                 conversations?.map((message, index) => {
-
                                                     return (
                                                         <div id={message.id} key={index}>
                                                             {
                                                                 message.sender_id == user._id ?
 
-                                                                    <div className='flex w-[65%] mt-2  space-x-2 max-w-xs ml-auto justify-end'>
-
-                                                                        <div className="bg-blue-600 text-white py-1.5 px-2 rounded-l-lg rounded-br-lg">
-                                                                            <p className="text-sm ">{message.message_text}</p>
+                                                                    <div className='w-full group'>
+                                                                        <div className='flex w-[65%] mt-2 items-center space-x-2 max-w-xs ml-auto justify-end'>
+                                                                            {/* <button className='p-1 group-hover:block hidden bg-gray-200 '>
+                                                                                <MdDelete className='text-gray-500' size={18} />
+                                                                            </button> */}
+                                                                            <div className="bg-blue-600 text-white py-1.5 px-2 rounded-l-lg rounded-br-lg">
+                                                                                <p className="text-sm">{message.message_text}</p>
+                                                                            </div>
+                                                                            {/* <img className="w-10 h-10 rounded-full object-cover" src={Image} alt="Rounded avatar" /> */}
                                                                         </div>
-
-                                                                        {/* <img className="w-10 h-10 rounded-full object-cover" src={Image} alt="Rounded avatar" /> */}
                                                                     </div>
+
                                                                     :
                                                                     <>
                                                                         <div className="flex w-[65%] mt-2 space-x-2 max-w-xs">
@@ -246,10 +272,12 @@ const Chat = () => {
                                     }
                                 </>
                             }
-                            <div className="bg-gray-300 p-4">
-                                <form onSubmit={handleSendMessage} className='flex justify-between gap-x-5 items-center'>
-                                    <input onChange={handleTyping} className="flex outline-none items-center h-10 w-full rounded px-3 text-sm" autoComplete='off' type="text" placeholder="Type your message…" name='message_input' />
-                                    <button>Send</button>
+                            <div className="bg-gray-300 px-3 py-3">
+                                <form onSubmit={handleSendMessage} className='flex justify-center gap-x-2 items-center'>
+                                    <textarea onChange={handleTyping} className="hideScrollbar resize-none flex outline-none items-center h-10 w-[80%] pt-[10px] rounded-full px-3 text-sm" autoComplete='off' type="text" placeholder="Type your message…" name='message_input' />
+                                    <button className='hover:bg-gray-200 p-2 rounded-full' type='submit'>
+                                        <RiSendPlaneFill className='text-[#4256D0]' size={28} />
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -258,17 +286,26 @@ const Chat = () => {
                 {!receiver &&
                     <div className='w-[400px] h-[600px] text-gray-800'>
                         <div className='w-full h-full p-1 bg-gray-100 shadow-xl rounded-lg overflow-hidden'>
-                            <div className='py-4 px-4 flex items-center justify-between'>
+                            <div className='p-4 flex items-center justify-between'>
                                 <h1 className='text-2xl font-medium'>Chats</h1>
-                                <div className='flex items-center gap-x-3'>
-                                    <input className='py-1 text-sm px-2 rounded outline-none' type="text" placeholder='Search peoples..' />
-                                    <button className='px-3 text-sm py-1 bg-green-500 rounded'>Search</button>
-                                </div>
+                                <button className='px-3 text-xs py-1 bg-[#4256D0] text-white rounded-full'>Add member</button>
+                            </div>
+                            <div className='flex px-4 items-center gap-x-3 w-full justify-between mb-3'>
+                                <form onSubmit={handleSearchConvo} className='w-full relative' >
+                                    <input onChange={(e) => setSearchText(e.target.value)} value={searchText} className='w-full text-sm py-1.5 px-3 text-gray-500 rounded-full outline-none' type="text" placeholder='Search members' id='search_member_input' />
+                                    {/* TODO: */}
+                                    <button type='submit' className='absolute right-2 top-[7px] px-2'>
+                                        <IoMdSearch className='text-gray-500' size={20} />
+                                    </button>
+                                    {searchText && <button onClick={resetConvoSearch} type='button' className='absolute right-10 top-[7px] px-2'>
+                                        <IoClose className='text-gray-500' size={20} />
+                                    </button>}
+                                </form>
                             </div>
                             {
                                 !userLoding && allUsers?.map((user, index) => {
                                     return (
-                                        <div onClick={() => handleOpenChat(user)} key={index} className="flex duration-100 items-center justify-between hover:bg-gray-200  cursor-pointer">
+                                        <div onClick={() => handleOpenChat(user)} key={index} className="flex duration-100 items-center justify-between hover:bg-gray-200 rounded cursor-pointer">
                                             <div className="py-4 px-4">
                                                 <div className="flex gap-x-2">
                                                     <div className='relative'>
@@ -292,7 +329,7 @@ const Chat = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button className='px-4'>12 Mar</button>
+
                                         </div>
                                     )
                                 })

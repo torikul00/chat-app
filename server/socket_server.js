@@ -74,6 +74,9 @@ const setMessage = async (chatData) => {
 
 io.on('connection', async (socket) => {
 
+    socket.on("get_online_users", () => {
+        io.emit("get_online_users", onlineUsers)
+    });
     socket.on("new_message", async ({ messageText, receiver, sender, newMessage }) => {
         const isOnlineReceiver = onlineUsers.find(user => user.userId === receiver._id);
 
@@ -109,14 +112,10 @@ io.on('connection', async (socket) => {
             })
     });
 
-    socket.on('typing', ({isTyping,receiver}) => {
+    socket.on('typing', ({ isTyping, receiver }) => {
         const isOnlineReceiver = onlineUsers.find(user => user.userId === receiver._id);
         isOnlineReceiver &&
-        socket.to(isOnlineReceiver.socketId).emit('typing', isTyping);
-    });
-
-    socket.on("get_online_users", () => {
-        io.emit("get_online_users", onlineUsers)
+            socket.to(isOnlineReceiver.socketId).emit('typing', isTyping);
     });
 
     socket.on("disconnect", () => {
