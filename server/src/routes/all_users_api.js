@@ -18,6 +18,47 @@ const run = async () => {
         }
     })
     // signup users
+    router.get('/all_users_with_convo', async (req, res) => {
+        try {
+
+            const { sender_id, receiver_id } = req.query
+            const participantsIds = [sender_id, receiver_id]
+            participantsIds.sort()
+
+            // Aggregation pipeline
+            const pipeline = [
+                {
+                    $match: {
+                        "participants.sender_id": participantsIds[0],
+                        "participants.receiver_id": participantsIds[1]
+                    },
+                },
+                { $unwind: "$messages" },
+                { $sort: { "messages.time_stamp": -1 } },
+                {
+                    $group: {
+                        _id: "$participants.participant_id",
+                        latestMessage: { $first: "$messages" },
+                        participant: { $first: "$participants" }
+                    }
+                },
+                {
+                    $project: {
+                        "_id": 0,
+                        "participant": 1,
+                        "latestMessage": 1
+                    }
+                }
+            ];
+
+            const result = await all_users_collection.aggregate(pipeline).toArray();
+
+            res.status(200).send({ message: "Get all users with latest message", usersWithLatestMessage: result });
+        } catch (error) {
+            console.error("Error:", error);
+            res.status(500).send({ message: "Internal server error" });
+        }
+    });
 
     router.post('/signup', async (req, res) => {
         try {

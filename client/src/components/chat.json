@@ -2,42 +2,24 @@
     {
         "participants": [
             {
-                "name": "Torikul Islam",
-                "participant_id": "sfwsdfsdfsfd"
+                "id": "sfwsdfsdfsfd",
+                "participant_name": "timu",
+                "participant_image": "https://www.google.com"
             },
             {
-                "name": "Timu",
-                "participant_id": "sfwsdfsdfsdfsfd"
+                "id": "sfwsdfsdfsdfsfd",
+                "participant_name": "timu",
+                "participant_image": "https://www.google.com"
             }
         ],
         "messages": [
-            [
-                {
-                    "id": "343",
-                    "sender": "sdfsdfsdf",
-                    "receiver": "sdfsdfsfsdf",
-                    "message_text": "hi timu, how are you ?",
-                    "time_stamp": "2024-01-24T21:36:26.931Z"
-                }
-            ],
-            [
-                {
-                    "id": "343",
-                    "sender": "sdfsdfsdf",
-                    "receiver": "sdfsdfsfsdf",
-                    "message_text": "hi timu, how are you ?",
-                    "time_stamp": "2024-01-24T21:36:26.931Z"
-                }
-            ],
-            [
-                {
-                    "id": "343",
-                    "sender": "sdfsdfsdf",
-                    "receiver": "sdfsdfsfsdf",
-                    "message_text": "hi timu, how are you ?",
-                    "time_stamp": "2024-01-24T21:36:26.931Z"
-                }
-            ]
+            {
+                "id": "343",
+                "sender": "sdfsdfsdf",
+                "receiver": "sdfsdfsfsdf",
+                "message_text": "hi timu, how are you ?",
+                "time_stamp": "2024-01-24T21:36:26.931Z"
+            }
         ],
         "is_seen_message": [
             {
